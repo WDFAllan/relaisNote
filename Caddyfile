@@ -1,0 +1,8 @@
+{$RELAIS_DOMAIN} {
+	reverse_proxy api:8080
+	encode gzip
+
+	# En accès réseau interne uniquement (pas de domaine public), remplacez
+	# la ligne ci-dessus par ":80 { reverse_proxy api:8080 }" pour désactiver
+	# la demande automatique de certificat Let's Encrypt.
+}

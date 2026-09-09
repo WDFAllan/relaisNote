@@ -1,0 +1,22 @@
+# Build output
+**/bin/
+**/obj/
+
+# Visual Studio and VS Code
+.vs/
+.vscode/
+*.user
+*.suo
+
+# Local environment and secrets
+.env
+.env.*
+!.env.example
+
+# Test and coverage output
+TestResults/
+coverage/
+
+# OS files
+Thumbs.db
+Desktop.ini

@@ -1,0 +1,50 @@
+version: "3.9"
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: relais
+      POSTGRES_USER: relais
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-changeme_en_prod}
+    volumes:
+      - relais_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U relais"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build:
+      context: ./src
+      dockerfile: Relais.Api/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      ConnectionStrings__Default: "Host=db;Database=relais;Username=relais;Password=${DB_PASSWORD:-changeme_en_prod}"
+      Jwt__Secret: ${JWT_SECRET:-changeme_en_prod_avec_une_valeur_longue_et_aleatoire}
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Production}
+    expose:
+      - "8080"
+
+  reverse-proxy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    depends_on:
+      - api
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - relais_caddy_data:/data
+    environment:
+      RELAIS_DOMAIN: ${RELAIS_DOMAIN:-localhost}
+
+volumes:
+  relais_db_data:
+  relais_caddy_data:
