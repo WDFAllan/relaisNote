@@ -12,7 +12,7 @@ using Relais.Infrastructure.Persistence;
 namespace Relais.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(RelaisDbContext))]
-    [Migration("20260909105759_InitialCreate")]
+    [Migration("20260909112602_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -118,37 +118,37 @@ namespace Relais.Infrastructure.Persistence.Migrations
                     b.HasData(
                         new
                         {
-                            Id = new Guid("f0105df6-66ee-4503-9c4e-77aee63f9395"),
+                            Id = new Guid("10000000-0000-0000-0000-000000000001"),
                             EstAlerte = false,
                             Libelle = "Comportement"
                         },
                         new
                         {
-                            Id = new Guid("ad95982c-900a-416e-bce4-e24b9a729fba"),
+                            Id = new Guid("10000000-0000-0000-0000-000000000002"),
                             EstAlerte = false,
                             Libelle = "Santé"
                         },
                         new
                         {
-                            Id = new Guid("d07a332c-5537-48ea-9b8a-9087973cbdf2"),
+                            Id = new Guid("10000000-0000-0000-0000-000000000003"),
                             EstAlerte = false,
                             Libelle = "Repas / sommeil"
                         },
                         new
                         {
-                            Id = new Guid("4ddf7bc6-35de-4f5f-90f0-409a4a6805c2"),
+                            Id = new Guid("10000000-0000-0000-0000-000000000004"),
                             EstAlerte = false,
                             Libelle = "Activité"
                         },
                         new
                         {
-                            Id = new Guid("3f938b76-df33-4ee6-af67-9725234982f3"),
+                            Id = new Guid("10000000-0000-0000-0000-000000000005"),
                             EstAlerte = false,
                             Libelle = "Point positif"
                         },
                         new
                         {
-                            Id = new Guid("612c7506-2a74-40f2-853f-f1acb487968c"),
+                            Id = new Guid("10000000-0000-0000-0000-000000000006"),
                             EstAlerte = true,
                             Libelle = "À signaler"
                         });

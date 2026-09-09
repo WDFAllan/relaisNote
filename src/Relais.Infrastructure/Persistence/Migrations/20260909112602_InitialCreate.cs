@@ -158,12 +158,12 @@ namespace Relais.Infrastructure.Persistence.Migrations
                 columns: new[] { "Id", "EstAlerte", "Libelle" },
                 values: new object[,]
                 {
-                    { new Guid("3f938b76-df33-4ee6-af67-9725234982f3"), false, "Point positif" },
-                    { new Guid("4ddf7bc6-35de-4f5f-90f0-409a4a6805c2"), false, "Activité" },
-                    { new Guid("612c7506-2a74-40f2-853f-f1acb487968c"), true, "À signaler" },
-                    { new Guid("ad95982c-900a-416e-bce4-e24b9a729fba"), false, "Santé" },
-                    { new Guid("d07a332c-5537-48ea-9b8a-9087973cbdf2"), false, "Repas / sommeil" },
-                    { new Guid("f0105df6-66ee-4503-9c4e-77aee63f9395"), false, "Comportement" }
+                    { new Guid("10000000-0000-0000-0000-000000000001"), false, "Comportement" },
+                    { new Guid("10000000-0000-0000-0000-000000000002"), false, "Santé" },
+                    { new Guid("10000000-0000-0000-0000-000000000003"), false, "Repas / sommeil" },
+                    { new Guid("10000000-0000-0000-0000-000000000004"), false, "Activité" },
+                    { new Guid("10000000-0000-0000-0000-000000000005"), false, "Point positif" },
+                    { new Guid("10000000-0000-0000-0000-000000000006"), true, "À signaler" }
                 });
 
             migrationBuilder.CreateIndex(

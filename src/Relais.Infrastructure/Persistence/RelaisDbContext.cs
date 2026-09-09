@@ -65,12 +65,12 @@ public class RelaisDbContext : DbContext
         });
 
         // Tags standard fournis par défaut à l'installation.
-        var comportement = Guid.NewGuid();
-        var sante = Guid.NewGuid();
-        var repasSommeil = Guid.NewGuid();
-        var activite = Guid.NewGuid();
-        var positif = Guid.NewGuid();
-        var signaler = Guid.NewGuid();
+        var comportement = Guid.Parse("10000000-0000-0000-0000-000000000001");
+        var sante = Guid.Parse("10000000-0000-0000-0000-000000000002");
+        var repasSommeil = Guid.Parse("10000000-0000-0000-0000-000000000003");
+        var activite = Guid.Parse("10000000-0000-0000-0000-000000000004");
+        var positif = Guid.Parse("10000000-0000-0000-0000-000000000005");
+        var signaler = Guid.Parse("10000000-0000-0000-0000-000000000006");
 
         modelBuilder.Entity<Tag>().HasData(
             new Tag { Id = comportement, Libelle = "Comportement", EstAlerte = false },
