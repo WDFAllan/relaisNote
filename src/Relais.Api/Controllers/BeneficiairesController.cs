@@ -123,6 +123,26 @@ public class BeneficiairesController : ControllerBase
         return NoContent();
     }
 
+    [HttpDelete("{id:guid}")]
+    [Authorize(Roles = nameof(RoleUtilisateur.Administrateur))]
+    public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
+    {
+        var beneficiaire = await db.Beneficiaires.SingleOrDefaultAsync(
+            item => item.Id == id,
+            cancellationToken);
+
+        if (beneficiaire is null)
+        {
+            return NotFound();
+        }
+
+        db.Beneficiaires.Remove(beneficiaire);
+        AddAudit("suppression_beneficiaire", $"Beneficiaire:{beneficiaire.Id}");
+        await db.SaveChangesAsync(cancellationToken);
+
+        return NoContent();
+    }
+
     private async Task<bool> IsActiveReferent(Guid id, CancellationToken cancellationToken)
     {
         return await db.Utilisateurs.AnyAsync(
