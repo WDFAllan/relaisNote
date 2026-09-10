@@ -44,7 +44,7 @@ services:
       - ./Caddyfile:/etc/caddy/Caddyfile
       - relais_caddy_data:/data
     environment:
-      RELAIS_DOMAIN: ${RELAIS_DOMAIN:-localhost}
+      RELAIS_DOMAIN: ${RELAIS_DOMAIN:-:80}
 
 volumes:
   relais_db_data:

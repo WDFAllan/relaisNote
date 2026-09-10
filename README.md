@@ -50,4 +50,4 @@ ASPNETCORE_ENVIRONMENT=Development
 SWAGGER_ENABLED=true
 ```
 
-En local avec Docker, Swagger est disponible à l'adresse `https://localhost/swagger`.
+En local avec Docker, Swagger est disponible à l'adresse `http://localhost/swagger`.
