@@ -44,15 +44,24 @@ function App() {
     event.preventDefault(); setError(''); const form = new FormData(event.currentTarget)
     try { const created = await api<Beneficiary>('/api/beneficiaires', { method: 'POST', headers: authHeaders, body: JSON.stringify({ prenom: form.get('prenom'), referentId: null }) }); setBeneficiaries((current) => [...current, created]); setSelectedId(created.id); event.currentTarget.reset() } catch (e) { setError((e as Error).message) }
   }
-  const deleteBeneficiary = async (beneficiary: Beneficiary) => {
-    const confirmation = window.prompt(`Pour supprimer ${beneficiary.prenom}, tapez exactement son prénom :`)
-    if (confirmation !== beneficiary.prenom) return
-    try {
-      await api<void>(`/api/beneficiaires/${beneficiary.id}`, { method: 'DELETE', headers: authHeaders })
-      setBeneficiaries((current) => current.filter((item) => item.id !== beneficiary.id))
-      setSelectedId(null)
-      setTransmissions([])
-    } catch (e) { setError((e as Error).message) }
+  const deleteBeneficiary = (beneficiary: Beneficiary) => {
+    const overlay = document.createElement('div')
+    overlay.className = 'delete-modal-backdrop'
+    overlay.innerHTML = `<div class="delete-modal" role="dialog" aria-modal="true"><p class="eyebrow">ACTION IRRÉVERSIBLE</p><h2>Supprimer ${beneficiary.prenom} ?</h2><p class="delete-copy">Toutes ses transmissions seront supprimées. Pour confirmer, tapez exactement <strong>${beneficiary.prenom}</strong>.</p><input class="delete-confirm-input" aria-label="Confirmation du prénom" placeholder="Retaper le prénom"><p class="delete-validation"></p><div class="delete-modal-actions"><button type="button" class="delete-cancel">Annuler</button><button type="button" class="delete-confirm">Supprimer définitivement</button></div></div>`
+    document.body.appendChild(overlay)
+    const input = overlay.querySelector<HTMLInputElement>('.delete-confirm-input')!
+    const validation = overlay.querySelector<HTMLElement>('.delete-validation')!
+    const close = () => overlay.remove()
+    overlay.querySelector('.delete-cancel')?.addEventListener('click', close)
+    overlay.addEventListener('click', (event) => { if (event.target === overlay) close() })
+    overlay.querySelector('.delete-confirm')?.addEventListener('click', async () => {
+      if (input.value !== beneficiary.prenom) { validation.textContent = 'Le prénom ne correspond pas.'; input.focus(); return }
+      try {
+        await api<void>(`/api/beneficiaires/${beneficiary.id}`, { method: 'DELETE', headers: authHeaders })
+        setBeneficiaries((current) => current.filter((item) => item.id !== beneficiary.id)); setSelectedId(null); setTransmissions([]); close()
+      } catch (e) { validation.textContent = (e as Error).message }
+    })
+    input.focus()
   }
   const createTransmission = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault(); if (!selectedId) return; setError(''); const form = new FormData(event.currentTarget)
