@@ -83,6 +83,45 @@ public class AuthController : ControllerBase
         return Ok(CreateAuthResponse(utilisateur));
     }
 
+    [HttpPost("users")]
+    [Authorize(Roles = nameof(RoleUtilisateur.Administrateur))]
+    public async Task<ActionResult<UserResponse>> CreateUser(
+        CreateUserRequest request,
+        CancellationToken cancellationToken)
+    {
+        if (request.Role is not (RoleUtilisateur.Referent or RoleUtilisateur.Educateur))
+        {
+            return BadRequest(new { message = "Le rôle doit être Referent ou Educateur." });
+        }
+
+        var email = NormalizeEmail(request.Email);
+        if (await db.Utilisateurs.AnyAsync(user => user.Email == email, cancellationToken))
+        {
+            return Conflict(new { message = "Un utilisateur existe déjà avec cet email." });
+        }
+
+        var utilisateur = new Utilisateur
+        {
+            Id = Guid.NewGuid(),
+            Email = email,
+            Prenom = request.Prenom.Trim(),
+            Nom = request.Nom.Trim(),
+            Role = request.Role,
+            Statut = StatutUtilisateur.Actif,
+        };
+        utilisateur.MotDePasseHash = passwordHasher.HashPassword(utilisateur, request.MotDePasse);
+
+        db.Utilisateurs.Add(utilisateur);
+        await db.SaveChangesAsync(cancellationToken);
+
+        return Created($"/api/auth/users/{utilisateur.Id}", new UserResponse(
+            utilisateur.Id,
+            utilisateur.Email,
+            utilisateur.Prenom,
+            utilisateur.Nom,
+            utilisateur.Role));
+    }
+
     private AuthResponse CreateAuthResponse(Utilisateur utilisateur)
     {
         var claims = new[]
@@ -135,6 +174,24 @@ public sealed class LoginRequest
 
     [Required]
     public string MotDePasse { get; set; } = string.Empty;
+}
+
+public sealed class CreateUserRequest
+{
+    [Required, EmailAddress]
+    public string Email { get; set; } = string.Empty;
+
+    [Required, MinLength(12)]
+    public string MotDePasse { get; set; } = string.Empty;
+
+    [Required, MinLength(1)]
+    public string Prenom { get; set; } = string.Empty;
+
+    [Required, MinLength(1)]
+    public string Nom { get; set; } = string.Empty;
+
+    [Required]
+    public RoleUtilisateur Role { get; set; } = RoleUtilisateur.Referent;
 }
 
 public sealed record AuthResponse(string Token, DateTime ExpiresAt, UserResponse User);
