@@ -51,3 +51,13 @@ SWAGGER_ENABLED=true
 ```
 
 En local avec Docker, Swagger est disponible à l'adresse `http://localhost/swagger`.
+
+Pour consulter PostgreSQL depuis VS Code, utiliser une connexion PostgreSQL avec :
+
+```
+Hôte : 127.0.0.1
+Port : 5433
+Base : relais
+Utilisateur : relais
+Mot de passe : changeme_en_prod
+```

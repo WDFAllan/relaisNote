@@ -8,6 +8,8 @@ services:
       POSTGRES_DB: relais
       POSTGRES_USER: relais
       POSTGRES_PASSWORD: ${DB_PASSWORD:-changeme_en_prod}
+    ports:
+      - "127.0.0.1:5433:5432"
     volumes:
       - relais_db_data:/var/lib/postgresql/data
     healthcheck:
