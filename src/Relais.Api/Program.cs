@@ -12,6 +12,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddDbContext<RelaisDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("Default")));
 builder.Services.AddScoped<BeneficiaireService>();
+builder.Services.AddScoped<TransmissionService>();
 
 // --- Authentification JWT ---
 var jwtSecret = builder.Configuration["Jwt:Secret"]
