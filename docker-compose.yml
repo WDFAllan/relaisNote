@@ -28,6 +28,7 @@ services:
       ConnectionStrings__Default: "Host=db;Database=relais;Username=relais;Password=${DB_PASSWORD:-changeme_en_prod}"
       Jwt__Secret: ${JWT_SECRET:-changeme_en_prod_avec_une_valeur_longue_et_aleatoire}
       ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Production}
+      Swagger__Enabled: ${SWAGGER_ENABLED:-true}
     expose:
       - "8080"
 

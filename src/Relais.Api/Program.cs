@@ -46,7 +46,12 @@ using (var scope = app.Services.CreateScope())
     db.Database.Migrate();
 }
 
-if (app.Environment.IsDevelopment())
+var swaggerEnabled = string.Equals(
+    builder.Configuration["Swagger:Enabled"],
+    "true",
+    StringComparison.OrdinalIgnoreCase);
+
+if (app.Environment.IsDevelopment() || swaggerEnabled)
 {
     app.UseSwagger();
     app.UseSwaggerUI();

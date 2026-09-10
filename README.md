@@ -47,4 +47,7 @@ DB_PASSWORD=un_mot_de_passe_solide
 JWT_SECRET=une_chaine_longue_et_aleatoire
 RELAIS_DOMAIN=localhost
 ASPNETCORE_ENVIRONMENT=Development
+SWAGGER_ENABLED=true
 ```
+
+En local avec Docker, Swagger est disponible à l'adresse `https://localhost/swagger`.
