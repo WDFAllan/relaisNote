@@ -12,6 +12,7 @@ type View = 'beneficiaries' | 'team'
 const api = async <T,>(path: string, options: RequestInit = {}): Promise<T> => {
   const response = await fetch(path, { ...options, headers: { 'Content-Type': 'application/json', ...options.headers } })
   if (!response.ok) throw new Error((await response.json().catch(() => null))?.message ?? `Erreur ${response.status}`)
+  if (response.status === 204) return undefined as T
   return response.json()
 }
 
@@ -83,15 +84,16 @@ function BeneficiariesView({ beneficiaries, selectedId, setSelectedId, selected,
     return () => input?.removeEventListener('input', filterRows)
   }, [beneficiaries])
   useEffect(() => {
-    const heading = document.querySelector('.sidebar .section-heading')
-    const button = document.createElement('button')
-    if (!heading || !isAdmin || !selected) return
+    const row = document.querySelector('.sidebar .person-row.selected')
+    const button = document.createElement('span')
+    if (!row || !isAdmin || !selected) return
     button.className = 'delete-button'
-    button.type = 'button'
+    button.tabIndex = 0
     button.textContent = 'Supprimer'
     button.title = 'Supprimer le bénéficiaire'
     button.onclick = () => onDeleteBeneficiary(selected)
-    heading.appendChild(button)
+    button.onkeydown = (event) => { if (event.key === 'Enter' || event.key === ' ') onDeleteBeneficiary(selected) }
+    row.appendChild(button)
     return () => button.remove()
   }, [isAdmin, selected, onDeleteBeneficiary])
   return <section className="workspace"><aside className="sidebar"><div className="section-heading"><div><p className="eyebrow">SUIVI ACTUEL</p><h2>Bénéficiaires</h2></div></div>{isAdmin && <form className="quick-create" onSubmit={onCreateBeneficiary}><label>Nouveau bénéficiaire<input name="prenom" placeholder="Prénom" required /></label><button className="primary-button" type="submit">Créer <span>+</span></button></form>}<div className="search-box">⌕ <input placeholder="Rechercher..." /></div><div className="people-list">{beneficiaries.map((item) => <button className={`person-row ${selectedId === item.id ? 'selected' : ''}`} key={item.id} onClick={() => setSelectedId(item.id)}><span className="avatar">{item.prenom[0]}</span><span><strong>{item.prenom}</strong><small>{item.referentNom ?? 'Sans référent'}</small></span><span className="chevron">›</span></button>)}{beneficiaries.length === 0 && <p className="empty">Aucun bénéficiaire actif.</p>}</div></aside><section className="content"><div className="content-heading"><div><p className="eyebrow">CARNET DE TRANSMISSIONS</p><h1>{selected?.prenom ?? 'Sélectionnez un bénéficiaire'}</h1>{selected && <p className="meta"><span className="active-pill">Actif</span> {transmissions.length} transmission{transmissions.length !== 1 ? 's' : ''}</p>}</div></div>{error && <div className="error-banner">{error}</div>}{selected ? <><form className="transmission-form" onSubmit={onCreateTransmission}><div className="form-label"><span>Nouvelle transmission</span><small>Partagez une observation avec l’équipe</small></div><textarea name="texte" placeholder="Écrire une observation..." required /><div className="form-actions"><select name="tagId" defaultValue=""><option value="">Sans tag</option>{tags.map((tag) => <option value={tag.id} key={tag.id}>{tag.libelle}</option>)}</select><button className="primary-button" type="submit">Publier <span>↗</span></button></div></form><div className="timeline">{transmissions.map((item) => <article className="transmission" key={item.id}><div className="timeline-dot" /><div className="transmission-head"><strong>{item.auteurNom ?? 'Équipe Relais'}</strong><time>{new Date(item.creeLe).toLocaleDateString('fr-FR')}</time></div><p>{item.texte}</p><div className="tag-list">{item.tags.map((tag) => <span className={tag.estAlerte ? 'tag alert' : 'tag'} key={tag.id}>{tag.libelle}</span>)}</div></article>)}</div></> : <div className="empty-state large"><span>◌</span><h3>Choisissez un bénéficiaire</h3></div>}</section></section>
