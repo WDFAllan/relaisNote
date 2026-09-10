@@ -2,6 +2,7 @@ using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using Relais.Domain.Services;
 using Relais.Infrastructure.Persistence;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -9,6 +10,7 @@ var builder = WebApplication.CreateBuilder(args);
 // --- Base de données ---
 builder.Services.AddDbContext<RelaisDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("Default")));
+builder.Services.AddScoped<BeneficiaireService>();
 
 // --- Authentification JWT ---
 var jwtSecret = builder.Configuration["Jwt:Secret"]
