@@ -122,6 +122,24 @@ public class AuthController : ControllerBase
             utilisateur.Role));
     }
 
+    [HttpGet("users")]
+    [Authorize(Roles = nameof(RoleUtilisateur.Administrateur))]
+    public async Task<ActionResult<IReadOnlyList<UserResponse>>> GetUsers(CancellationToken cancellationToken)
+    {
+        return Ok(await db.Utilisateurs
+            .AsNoTracking()
+            .OrderBy(user => user.Nom)
+            .ThenBy(user => user.Prenom)
+            .Select(user => new UserResponse(
+                user.Id,
+                user.Email,
+                user.Prenom,
+                user.Nom,
+                user.Role,
+                user.Statut))
+            .ToListAsync(cancellationToken));
+    }
+
     private AuthResponse CreateAuthResponse(Utilisateur utilisateur)
     {
         var claims = new[]
@@ -201,4 +219,5 @@ public sealed record UserResponse(
     string Email,
     string Prenom,
     string Nom,
-    RoleUtilisateur Role);
+    RoleUtilisateur Role,
+    StatutUtilisateur Statut = StatutUtilisateur.Actif);
