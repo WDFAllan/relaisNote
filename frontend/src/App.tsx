@@ -32,23 +32,23 @@ function App() {
     setBeneficiaries(people); setTags(availableTags); if (!selectedId && people[0]) setSelectedId(people[0].id)
     if (user?.role === 0) setTeam(await api<TeamUser[]>('/api/auth/users', { headers: authHeaders }))
   }
-  useEffect(() => { if (token) loadData().catch((e) => setError(e.message)) }, [token])
-  useEffect(() => { if (selectedId) api<Transmission[]>(`/api/beneficiaires/${selectedId}/transmissions`, { headers: authHeaders }).then(setTransmissions).catch((e) => setError(e.message)) }, [selectedId])
+  useEffect(() => { if (token) { setError(''); loadData().catch((e) => setError(e.message)) } }, [token])
+  useEffect(() => { if (selectedId) { setError(''); api<Transmission[]>(`/api/beneficiaires/${selectedId}/transmissions`, { headers: authHeaders }).then((data) => { setTransmissions(data); setError('') }).catch((e) => setError(e.message)) } }, [selectedId])
 
   const login = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault(); const form = new FormData(event.currentTarget)
     try { const result = await api<{ token: string; user: User }>('/api/auth/login', { method: 'POST', body: JSON.stringify({ email: form.get('email'), motDePasse: form.get('password') }) }); localStorage.setItem('relais_token', result.token); localStorage.setItem('relais_user', JSON.stringify(result.user)); setToken(result.token); setUser(result.user) } catch (e) { setError((e as Error).message) }
   }
   const createBeneficiary = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault(); const form = new FormData(event.currentTarget)
+    event.preventDefault(); setError(''); const form = new FormData(event.currentTarget)
     try { const created = await api<Beneficiary>('/api/beneficiaires', { method: 'POST', headers: authHeaders, body: JSON.stringify({ prenom: form.get('prenom'), referentId: null }) }); setBeneficiaries((current) => [...current, created]); setSelectedId(created.id); event.currentTarget.reset() } catch (e) { setError((e as Error).message) }
   }
   const createTransmission = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault(); if (!selectedId) return; const form = new FormData(event.currentTarget)
+    event.preventDefault(); if (!selectedId) return; setError(''); const form = new FormData(event.currentTarget)
     try { const created = await api<Transmission>(`/api/beneficiaires/${selectedId}/transmissions`, { method: 'POST', headers: authHeaders, body: JSON.stringify({ texte: form.get('texte'), tagIds: [form.get('tagId')].filter(Boolean) }) }); setTransmissions((current) => [created, ...current]); event.currentTarget.reset() } catch (e) { setError((e as Error).message) }
   }
   const createTeamUser = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault(); const form = new FormData(event.currentTarget)
+    event.preventDefault(); setError(''); const form = new FormData(event.currentTarget)
     try { const created = await api<TeamUser>('/api/auth/users', { method: 'POST', headers: authHeaders, body: JSON.stringify({ email: form.get('email'), motDePasse: form.get('password'), prenom: form.get('prenom'), nom: form.get('nom'), role: Number(form.get('role')) }) }); setTeam((current) => [...current, created]); event.currentTarget.reset() } catch (e) { setError((e as Error).message) }
   }
   const logout = () => { localStorage.clear(); setToken(null); setUser(null) }
