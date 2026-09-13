@@ -31,6 +31,7 @@ public class BeneficiairesController : ControllerBase
         var query = db.Beneficiaires
             .AsNoTracking()
             .Include(beneficiaire => beneficiaire.Referent)
+            .Include(beneficiaire => beneficiaire.Service)
             .AsQueryable();
 
         if (!inclureArchives)
@@ -44,6 +45,8 @@ public class BeneficiairesController : ControllerBase
                 beneficiaire.Id,
                 beneficiaire.Prenom,
                 beneficiaire.Statut,
+                beneficiaire.ServiceId,
+                beneficiaire.Service == null ? null : beneficiaire.Service.Nom,
                 beneficiaire.ReferentId,
                 beneficiaire.Referent == null
                     ? null
@@ -60,6 +63,7 @@ public class BeneficiairesController : ControllerBase
         var beneficiaire = await db.Beneficiaires
             .AsNoTracking()
             .Include(item => item.Referent)
+            .Include(item => item.Service)
             .SingleOrDefaultAsync(item => item.Id == id, cancellationToken);
 
         return beneficiaire is null
@@ -73,6 +77,13 @@ public class BeneficiairesController : ControllerBase
         CreateBeneficiaireRequest request,
         CancellationToken cancellationToken)
     {
+        if (request.ServiceId.HasValue && !await db.Services.AnyAsync(
+                service => service.Id == request.ServiceId.Value && service.EstActif,
+                cancellationToken))
+        {
+            return BadRequest(new { message = "Le service indiqué est introuvable ou inactif." });
+        }
+
         if (request.ReferentId.HasValue && !await IsActiveReferent(request.ReferentId.Value, cancellationToken))
         {
             return BadRequest(new { message = "Le référent indiqué est introuvable ou inactif." });
@@ -82,6 +93,7 @@ public class BeneficiairesController : ControllerBase
         try
         {
             beneficiaire = beneficiaireService.Creer(request.Prenom, request.ReferentId);
+            beneficiaire.ServiceId = request.ServiceId;
         }
         catch (ArgumentException exception)
         {
@@ -92,7 +104,52 @@ public class BeneficiairesController : ControllerBase
         AddAudit("creation_beneficiaire", $"Beneficiaire:{beneficiaire.Id}");
         await db.SaveChangesAsync(cancellationToken);
 
+        if (request.ServiceId.HasValue)
+        {
+            beneficiaire.Service = await db.Services.FindAsync([request.ServiceId.Value], cancellationToken);
+        }
+
         return CreatedAtAction(nameof(GetById), new { id = beneficiaire.Id }, ToResponse(beneficiaire));
+    }
+
+    [HttpPut("{id:guid}/service")]
+    [Authorize(Roles = "Administrateur,Referent")]
+    public async Task<ActionResult<BeneficiaireResponse>> ChangeService(
+        Guid id,
+        ChangeBeneficiaireServiceRequest request,
+        CancellationToken cancellationToken)
+    {
+        var beneficiaire = await db.Beneficiaires
+            .Include(item => item.Service)
+            .Include(item => item.Referent)
+            .SingleOrDefaultAsync(item => item.Id == id, cancellationToken);
+
+        if (beneficiaire is null) return NotFound();
+
+        if (request.ServiceId.HasValue && !await db.Services.AnyAsync(
+                service => service.Id == request.ServiceId.Value && service.EstActif,
+                cancellationToken))
+        {
+            return BadRequest(new { message = "Le service indiqué est introuvable ou inactif." });
+        }
+
+        var previousServiceId = beneficiaire.ServiceId;
+        beneficiaire.ServiceId = request.ServiceId;
+        AddAudit(
+            "changement_service_beneficiaire",
+            $"Beneficiaire:{beneficiaire.Id};De:{previousServiceId?.ToString() ?? "aucun"};Vers:{request.ServiceId?.ToString() ?? "aucun"}");
+        await db.SaveChangesAsync(cancellationToken);
+
+        if (request.ServiceId.HasValue)
+        {
+            beneficiaire.Service = await db.Services.FindAsync([request.ServiceId.Value], cancellationToken);
+        }
+        else
+        {
+            beneficiaire.Service = null;
+        }
+
+        return Ok(ToResponse(beneficiaire));
     }
 
     [HttpPost("{id:guid}/archiver")]
@@ -147,7 +204,8 @@ public class BeneficiairesController : ControllerBase
     {
         return await db.Utilisateurs.AnyAsync(
             utilisateur => utilisateur.Id == id
-                && utilisateur.Role == RoleUtilisateur.Referent
+                && (utilisateur.Role == RoleUtilisateur.Referent
+                    || utilisateur.Role == RoleUtilisateur.Educateur)
                 && utilisateur.Statut == StatutUtilisateur.Actif,
             cancellationToken);
     }
@@ -173,6 +231,8 @@ public class BeneficiairesController : ControllerBase
         beneficiaire.Id,
         beneficiaire.Prenom,
         beneficiaire.Statut,
+        beneficiaire.ServiceId,
+        beneficiaire.Service is null ? null : beneficiaire.Service.Nom,
         beneficiaire.ReferentId,
         beneficiaire.Referent is null
             ? null
@@ -185,13 +245,22 @@ public sealed class CreateBeneficiaireRequest
     [Required, MinLength(1)]
     public string Prenom { get; set; } = string.Empty;
 
+    public Guid? ServiceId { get; set; }
+
     public Guid? ReferentId { get; set; }
+}
+
+public sealed class ChangeBeneficiaireServiceRequest
+{
+    public Guid? ServiceId { get; set; }
 }
 
 public sealed record BeneficiaireResponse(
     Guid Id,
     string Prenom,
     StatutBeneficiaire Statut,
+    Guid? ServiceId,
+    string? ServiceNom,
     Guid? ReferentId,
     string? ReferentNom,
     DateTime CreeLe);

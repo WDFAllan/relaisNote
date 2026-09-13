@@ -9,6 +9,9 @@ public class RelaisDbContext : DbContext
 
     public DbSet<ParametresInstallation> ParametresInstallation => Set<ParametresInstallation>();
     public DbSet<Utilisateur> Utilisateurs => Set<Utilisateur>();
+    public DbSet<Service> Services => Set<Service>();
+    public DbSet<Equipe> Equipes => Set<Equipe>();
+    public DbSet<UtilisateurEquipe> UtilisateurEquipes => Set<UtilisateurEquipe>();
     public DbSet<Beneficiaire> Beneficiaires => Set<Beneficiaire>();
     public DbSet<Transmission> Transmissions => Set<Transmission>();
     public DbSet<Tag> Tags => Set<Tag>();
@@ -21,8 +24,39 @@ public class RelaisDbContext : DbContext
             e.HasIndex(u => u.Email).IsUnique();
         });
 
+        modelBuilder.Entity<Service>(e =>
+        {
+            e.HasIndex(service => service.Nom).IsUnique();
+        });
+
+        modelBuilder.Entity<Equipe>(e =>
+        {
+            e.HasIndex(team => new { team.ServiceId, team.Nom }).IsUnique();
+            e.HasOne(team => team.Service)
+                .WithMany(service => service.Equipes)
+                .HasForeignKey(team => team.ServiceId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<UtilisateurEquipe>(e =>
+        {
+            e.HasKey(member => new { member.UtilisateurId, member.EquipeId });
+            e.HasOne(member => member.Utilisateur)
+                .WithMany()
+                .HasForeignKey(member => member.UtilisateurId)
+                .OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(member => member.Equipe)
+                .WithMany(team => team.Membres)
+                .HasForeignKey(member => member.EquipeId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
         modelBuilder.Entity<Beneficiaire>(e =>
         {
+            e.HasOne(b => b.Service)
+                .WithMany(service => service.Beneficiaires)
+                .HasForeignKey(b => b.ServiceId)
+                .OnDelete(DeleteBehavior.SetNull);
             e.HasOne(b => b.Referent)
                 .WithMany()
                 .HasForeignKey(b => b.ReferentId)

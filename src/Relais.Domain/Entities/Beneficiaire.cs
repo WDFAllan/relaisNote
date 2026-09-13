@@ -6,6 +6,8 @@ public class Beneficiaire
 {
     public Guid Id { get; set; }
     public string Prenom { get; set; } = string.Empty;
+    public Guid? ServiceId { get; set; }
+    public Service? Service { get; set; }
     public Guid? ReferentId { get; set; }
     public Utilisateur? Referent { get; set; }
     public StatutBeneficiaire Statut { get; set; } = StatutBeneficiaire.Actif;
