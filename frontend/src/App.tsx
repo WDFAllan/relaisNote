@@ -158,29 +158,27 @@ function App() {
     }
   }
 
-  const deleteBeneficiary = (beneficiary: Beneficiary) => {
+  const archiveBeneficiary = (beneficiary: Beneficiary) => {
     const overlay = document.createElement('div')
     overlay.className = 'delete-modal-backdrop'
     overlay.innerHTML = `
       <div class="delete-modal" role="dialog" aria-modal="true">
-        <p class="eyebrow">ACTION IRRÉVERSIBLE</p>
-        <h2>Supprimer ${beneficiary.prenom} ?</h2>
+        <p class="eyebrow">ARCHIVAGE</p>
+        <h2>Archiver ${beneficiary.prenom} ?</h2>
         <p class="delete-copy">
-          Toutes ses transmissions seront supprimées. Pour confirmer, tapez exactement
-          <strong> ${beneficiary.prenom}</strong>.
+          ${beneficiary.prenom} n'apparaîtra plus dans la liste active, mais son historique de
+          transmissions est conservé. Cette action est réversible.
         </p>
-        <input class="delete-confirm-input" aria-label="Confirmation du prénom" placeholder="Retaper le prénom" />
         <p class="delete-validation"></p>
         <div class="delete-modal-actions">
           <button type="button" class="delete-cancel">Annuler</button>
-          <button type="button" class="delete-confirm">Supprimer définitivement</button>
+          <button type="button" class="delete-confirm">Archiver</button>
         </div>
       </div>
     `
 
     document.body.appendChild(overlay)
 
-    const input = overlay.querySelector<HTMLInputElement>('.delete-confirm-input')
     const validation = overlay.querySelector<HTMLElement>('.delete-validation')
     const close = () => overlay.remove()
 
@@ -190,15 +188,9 @@ function App() {
     })
 
     overlay.querySelector('.delete-confirm')?.addEventListener('click', async () => {
-      if (!input || input.value !== beneficiary.prenom) {
-        if (validation) validation.textContent = 'Le prénom ne correspond pas.'
-        input?.focus()
-        return
-      }
-
       try {
-        await api<void>(`/api/beneficiaires/${beneficiary.id}`, {
-          method: 'DELETE',
+        await api<void>(`/api/beneficiaires/${beneficiary.id}/archiver`, {
+          method: 'POST',
           headers: authHeaders,
         })
 
@@ -210,8 +202,6 @@ function App() {
         if (validation) validation.textContent = (e as Error).message
       }
     })
-
-    input?.focus()
   }
 
   const createTransmission = async (event: FormEvent<HTMLFormElement>) => {
@@ -437,7 +427,7 @@ function App() {
           error={error}
           isAdmin={user?.role === 0}
           onCreateBeneficiary={createBeneficiary}
-          onDeleteBeneficiary={deleteBeneficiary}
+          onArchiveBeneficiary={archiveBeneficiary}
           onCreateTransmission={createTransmission}
           onChangeService={changeBeneficiaryService}
         />
@@ -457,7 +447,7 @@ type BeneficiariesViewProps = {
   error: string
   isAdmin: boolean
   onCreateBeneficiary: (event: FormEvent<HTMLFormElement>) => void
-  onDeleteBeneficiary: (beneficiary: Beneficiary) => void
+  onArchiveBeneficiary: (beneficiary: Beneficiary) => void
   onCreateTransmission: (event: FormEvent<HTMLFormElement>) => void
   onChangeService: (beneficiary: Beneficiary, serviceId: string | null) => Promise<void>
 }
@@ -473,7 +463,7 @@ function BeneficiariesView({
   error,
   isAdmin,
   onCreateBeneficiary,
-  onDeleteBeneficiary,
+  onArchiveBeneficiary,
   onCreateTransmission,
   onChangeService,
 }: BeneficiariesViewProps) {
@@ -573,7 +563,7 @@ function BeneficiariesView({
           {isAdmin && selected && (
             <div className="heading-actions">
               <button className="outline-button" onClick={() => { setNextServiceId(selected.serviceId ?? ''); setShowServiceModal(true) }}>Changer de service</button>
-              <button className="delete-button" onClick={() => onDeleteBeneficiary(selected)}>Supprimer</button>
+              <button className="delete-button" onClick={() => onArchiveBeneficiary(selected)}>Archiver</button>
             </div>
           )}
         </div>
