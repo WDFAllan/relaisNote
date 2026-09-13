@@ -10,6 +10,8 @@ type Tag = { id: string; libelle: string; estAlerte: boolean }
 type Transmission = { id: string; texte: string; creeLe: string; auteurNom: string | null; tags: Tag[] }
 type View = 'beneficiaries' | 'team' | 'service-beneficiaries'
 
+const UNAUTHORIZED_EVENT = 'relais:unauthorized'
+
 const api = async <T,>(path: string, options: RequestInit = {}): Promise<T> => {
   const response = await fetch(path, {
     ...options,
@@ -18,6 +20,13 @@ const api = async <T,>(path: string, options: RequestInit = {}): Promise<T> => {
       ...options.headers,
     },
   })
+
+  if (response.status === 401) {
+    localStorage.removeItem('relais_token')
+    localStorage.removeItem('relais_user')
+    window.dispatchEvent(new Event(UNAUTHORIZED_EVENT))
+    throw new Error('Session expirée, veuillez vous reconnecter.')
+  }
 
   if (!response.ok) {
     const payload = await response.json().catch(() => null)
@@ -73,6 +82,17 @@ function App() {
       setTeams(availableTeams)
     }
   }
+
+  useEffect(() => {
+    const onUnauthorized = () => {
+      setToken(null)
+      setUser(null)
+      setError('Session expirée, veuillez vous reconnecter.')
+    }
+
+    window.addEventListener(UNAUTHORIZED_EVENT, onUnauthorized)
+    return () => window.removeEventListener(UNAUTHORIZED_EVENT, onUnauthorized)
+  }, [])
 
   useEffect(() => {
     if (!token) return
