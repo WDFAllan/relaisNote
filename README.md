@@ -1,46 +1,90 @@
-# Relais — squelette de projet
+# Relais
 
-Point de départ du backend, généré à partir du cahier des charges technique.
-À ouvrir dans **Claude Code** (ou votre IDE habituel) pour continuer.
+[![CI](https://github.com/WDFAllan/relaisNote/actions/workflows/ci.yml/badge.svg)](https://github.com/WDFAllan/relaisNote/actions/workflows/ci.yml)
 
-## Structure
+Carnet de transmission numérique pour les équipes éducatives et sociales (foyers, services d'accompagnement) : les éducateurs et référents y notent des observations sur les personnes accompagnées, se transmettent l'information au fil des relèves, et repèrent en un coup d'œil ce qui doit être signalé.
 
+## Aperçu
+
+| Carnet de transmissions | Organisation (admin) |
+|---|---|
+| ![Carnet de transmissions](docs/screenshots/carnet.png) | ![Organisation](docs/screenshots/organisation.png) |
+
+<details>
+<summary>Écran de connexion</summary>
+
+![Connexion](docs/screenshots/login.png)
+</details>
+
+## Fonctionnalités
+
+- **Transmissions** : chaque bénéficiaire a un carnet où l'équipe publie des observations horodatées, taggées (comportement, santé, repas/sommeil, activité, point positif, ou **à signaler** pour les alertes).
+- **Organisation** : les bénéficiaires sont rattachés à un service et à un référent ; les services regroupent des équipes, elles-mêmes composées d'éducateurs et de référents.
+- **Rôles** : Administrateur (gestion complète), Référent (crée des bénéficiaires, gère leur service/référent, archive), Éducateur (consulte et publie des transmissions).
+- **Archivage plutôt que suppression** : un bénéficiaire quitté est archivé, pas effacé — l'historique de transmissions reste consultable.
+- **Auth JWT** avec déconnexion automatique à l'expiration du token (pas besoin d'attendre un appel API en échec).
+- **Journal d'audit** sur les actions sensibles (création, archivage, changement de service/référent).
+
+## Stack technique
+
+**Backend** — .NET 9 / ASP.NET Core, EF Core + PostgreSQL, JWT, architecture en 3 projets :
 ```
-relais/
-├── docker-compose.yml       # API + PostgreSQL + reverse proxy Caddy (HTTPS auto)
-├── Caddyfile
-├── src/
-│   ├── Relais.sln
-│   ├── Relais.Domain/        # Entités métier (Utilisateur, Beneficiaire, Transmission, Tag, JournalAudit...)
-│   ├── Relais.Infrastructure/ # DbContext EF Core (PostgreSQL / Npgsql)
-│   └── Relais.Api/            # API ASP.NET Core, auth JWT, Dockerfile
+src/
+├── Relais.Domain/          # Entités métier, services (logique pure, testée)
+├── Relais.Infrastructure/  # DbContext EF Core, migrations
+├── Relais.Api/              # Contrôleurs REST, auth JWT, Swagger
+└── Relais.Domain.Tests/     # Tests unitaires (xUnit)
 ```
 
-## Ce qui est déjà en place
+**Frontend** — React 19 + TypeScript + Vite :
+```
+frontend/src/
+├── api.ts                 # Client fetch, gestion du token JWT
+├── types.ts                # Types partagés
+├── components/              # Une vue par domaine (bénéficiaires, services, équipe)
+└── App.tsx                  # État applicatif et routage entre vues
+```
 
-- Entités du domaine alignées sur le modèle de données du cahier des charges (section 5)
-- `RelaisDbContext` avec les relations et les 6 tags standard pré-remplis (dont "À signaler")
-- Authentification JWT configurée dans `Program.cs`
-- `docker-compose.yml` prêt à builder l'API, lancer PostgreSQL, et exposer le tout en HTTPS via Caddy
+**Déploiement** — Docker Compose (API + PostgreSQL + reverse proxy Caddy en HTTPS auto).
 
-## Ce qu'il reste à faire (prochaines étapes suggérées)
+**CI** — GitHub Actions : build + tests .NET, lint + typecheck + build frontend, à chaque push/PR sur `main`.
 
-1. **Restaurer les paquets et vérifier la compilation** : `dotnet restore src/Relais.sln` puis `dotnet build src/Relais.sln`.
-2. **Créer la première migration EF Core** :
-   ```
-   cd src/Relais.Api
-   dotnet ef migrations add InitialCreate --project ../Relais.Infrastructure --startup-project .
-   ```
-3. **Ajouter les endpoints** (contrôleurs ou minimal API) pour l'authentification, les bénéficiaires, les transmissions — pour l'instant seul `/health` existe.
-4. **Brancher ASP.NET Core Identity** pour la gestion des mots de passe et des invitations (actuellement, `MotDePasseHash` est un champ brut sur `Utilisateur`, à remplacer ou compléter selon le choix Identity retenu).
-5. **Démarrer en local** :
-   ```
-   cp .env.example .env   # à créer, avec DB_PASSWORD et JWT_SECRET
-   docker compose up --build
-   ```
-6. **Frontend React** : pas encore scaffoldé dans ce squelette — à générer séparément (Vite + React + TypeScript conseillé).
+## Démarrer en local
 
-## Variables d'environnement attendues (`.env`)
+### Backend + base de données
+
+```bash
+docker compose up --build
+```
+
+Crée le premier compte administrateur (une seule fois) :
+
+```bash
+curl -X POST http://localhost/api/auth/setup \
+  -H "Content-Type: application/json" \
+  -d '{"email":"admin@relais.local","motDePasse":"UnMotDePasseSolide123!","prenom":"Admin","nom":"Relais"}'
+```
+
+Swagger disponible sur `http://localhost/swagger`.
+
+### Frontend
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+L'application est servie sur `http://localhost:5173` (le proxy Vite redirige `/api` vers le backend).
+
+### Tests
+
+```bash
+dotnet test src/Relais.sln       # backend
+cd frontend && npm run lint && npm run build   # frontend (lint + typecheck)
+```
+
+## Variables d'environnement (`.env`)
 
 ```
 DB_PASSWORD=un_mot_de_passe_solide
@@ -48,16 +92,4 @@ JWT_SECRET=une_chaine_longue_et_aleatoire
 RELAIS_DOMAIN=localhost
 ASPNETCORE_ENVIRONMENT=Development
 SWAGGER_ENABLED=true
-```
-
-En local avec Docker, Swagger est disponible à l'adresse `http://localhost/swagger`.
-
-Pour consulter PostgreSQL depuis VS Code, utiliser une connexion PostgreSQL avec :
-
-```
-Hôte : 127.0.0.1
-Port : 5433
-Base : relais
-Utilisateur : relais
-Mot de passe : changeme_en_prod
 ```
