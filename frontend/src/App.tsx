@@ -12,6 +12,19 @@ type View = 'beneficiaries' | 'team' | 'service-beneficiaries'
 
 const UNAUTHORIZED_EVENT = 'relais:unauthorized'
 
+const notifyUnauthorized = () => window.dispatchEvent(new Event(UNAUTHORIZED_EVENT))
+
+// Le payload d'un JWT est du base64url, à convertir en base64 standard avant décodage.
+const getTokenExpiryMs = (jwt: string): number | null => {
+  try {
+    const payload = jwt.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')
+    const { exp } = JSON.parse(atob(payload))
+    return typeof exp === 'number' ? exp * 1000 : null
+  } catch {
+    return null
+  }
+}
+
 const api = async <T,>(path: string, options: RequestInit = {}): Promise<T> => {
   const response = await fetch(path, {
     ...options,
@@ -22,9 +35,7 @@ const api = async <T,>(path: string, options: RequestInit = {}): Promise<T> => {
   })
 
   if (response.status === 401) {
-    localStorage.removeItem('relais_token')
-    localStorage.removeItem('relais_user')
-    window.dispatchEvent(new Event(UNAUTHORIZED_EVENT))
+    notifyUnauthorized()
     throw new Error('Session expirée, veuillez vous reconnecter.')
   }
 
@@ -85,6 +96,8 @@ function App() {
 
   useEffect(() => {
     const onUnauthorized = () => {
+      localStorage.removeItem('relais_token')
+      localStorage.removeItem('relais_user')
       setToken(null)
       setUser(null)
       setError('Session expirée, veuillez vous reconnecter.')
@@ -93,6 +106,23 @@ function App() {
     window.addEventListener(UNAUTHORIZED_EVENT, onUnauthorized)
     return () => window.removeEventListener(UNAUTHORIZED_EVENT, onUnauthorized)
   }, [])
+
+  // Deconnecte proactivement des l expiration du JWT, sans attendre un appel API en echec.
+  useEffect(() => {
+    if (!token) return
+
+    const expiryMs = getTokenExpiryMs(token)
+    if (expiryMs === null) return
+
+    const delay = expiryMs - Date.now()
+    if (delay <= 0) {
+      notifyUnauthorized()
+      return
+    }
+
+    const timeoutId = window.setTimeout(notifyUnauthorized, delay)
+    return () => window.clearTimeout(timeoutId)
+  }, [token])
 
   useEffect(() => {
     if (!token) return
