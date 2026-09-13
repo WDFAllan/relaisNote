@@ -1,9 +1,10 @@
 import { useEffect, useState, type FormEvent } from 'react'
-import type { Beneficiary, Service, Tag, Transmission } from '../types'
+import type { Beneficiary, Service, Tag, TeamUser, Transmission } from '../types'
 
 type BeneficiariesViewProps = {
   beneficiaries: Beneficiary[]
   services: Service[]
+  referents: TeamUser[]
   selectedId: string | null
   setSelectedId: (id: string) => void
   selected?: Beneficiary
@@ -15,11 +16,13 @@ type BeneficiariesViewProps = {
   onArchiveBeneficiary: (beneficiary: Beneficiary) => void
   onCreateTransmission: (event: FormEvent<HTMLFormElement>) => void
   onChangeService: (beneficiary: Beneficiary, serviceId: string | null) => Promise<void>
+  onChangeReferent: (beneficiary: Beneficiary, referentId: string | null) => Promise<void>
 }
 
 export function BeneficiariesView({
   beneficiaries,
   services,
+  referents,
   selectedId,
   setSelectedId,
   selected,
@@ -31,11 +34,14 @@ export function BeneficiariesView({
   onArchiveBeneficiary,
   onCreateTransmission,
   onChangeService,
+  onChangeReferent,
 }: BeneficiariesViewProps) {
   const [selectedTransmissionTagId, setSelectedTransmissionTagId] = useState('')
   const [showOnlyAlerts, setShowOnlyAlerts] = useState(false)
   const [showServiceModal, setShowServiceModal] = useState(false)
   const [nextServiceId, setNextServiceId] = useState('')
+  const [showReferentModal, setShowReferentModal] = useState(false)
+  const [nextReferentId, setNextReferentId] = useState('')
 
   const filteredTransmissions = transmissions.filter((item) => {
     if (showOnlyAlerts && !item.tags.some((tag) => tag.estAlerte)) return false
@@ -128,6 +134,7 @@ export function BeneficiariesView({
           {isAdmin && selected && (
             <div className="heading-actions">
               <button className="outline-button" onClick={() => { setNextServiceId(selected.serviceId ?? ''); setShowServiceModal(true) }}>Changer de service</button>
+              <button className="outline-button" onClick={() => { setNextReferentId(selected.referentId ?? ''); setShowReferentModal(true) }}>Changer de référent</button>
               <button className="delete-button" onClick={() => onArchiveBeneficiary(selected)}>Archiver</button>
             </div>
           )}
@@ -244,6 +251,39 @@ export function BeneficiariesView({
                 <select value={nextServiceId} onChange={(event) => setNextServiceId(event.target.value)}>
                   <option value="">Sans service</option>
                   {services.map((service) => <option value={service.id} key={service.id}>{service.nom}</option>)}
+                </select>
+              </label>
+              <button className="primary-button" type="submit">Enregistrer <span>→</span></button>
+            </form>
+          </section>
+        </div>
+      )}
+      {showReferentModal && selected && (
+        <div
+          className="organization-modal-backdrop"
+          onClick={(event) => { if (event.target === event.currentTarget) setShowReferentModal(false) }}
+        >
+          <section className="organization-modal" role="dialog" aria-modal="true">
+            <div className="panel-heading">
+              <h2>Changer de référent</h2>
+              <button className="close-action" onClick={() => setShowReferentModal(false)}>Fermer</button>
+            </div>
+            <p className="delete-copy">Choisissez le référent de <strong>{selected.prenom}</strong>.</p>
+            <form
+              className="organization-form"
+              onSubmit={async (event) => {
+                event.preventDefault()
+                await onChangeReferent(selected, nextReferentId || null)
+                setShowReferentModal(false)
+              }}
+            >
+              <label>
+                Référent
+                <select value={nextReferentId} onChange={(event) => setNextReferentId(event.target.value)}>
+                  <option value="">Sans référent</option>
+                  {referents.map((referent) => (
+                    <option value={referent.id} key={referent.id}>{referent.prenom} {referent.nom}</option>
+                  ))}
                 </select>
               </label>
               <button className="primary-button" type="submit">Enregistrer <span>→</span></button>

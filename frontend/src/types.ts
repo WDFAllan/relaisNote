@@ -8,6 +8,7 @@ export type Beneficiary = {
   statut: number
   serviceId: string | null
   serviceNom?: string | null
+  referentId: string | null
   referentNom: string | null
 }
 export type Tag = { id: string; libelle: string; estAlerte: boolean }

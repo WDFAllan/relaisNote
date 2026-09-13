@@ -152,6 +152,39 @@ public class BeneficiairesController : ControllerBase
         return Ok(ToResponse(beneficiaire));
     }
 
+    [HttpPut("{id:guid}/referent")]
+    [Authorize(Roles = "Administrateur,Referent")]
+    public async Task<ActionResult<BeneficiaireResponse>> ChangeReferent(
+        Guid id,
+        ChangeBeneficiaireReferentRequest request,
+        CancellationToken cancellationToken)
+    {
+        var beneficiaire = await db.Beneficiaires
+            .Include(item => item.Service)
+            .Include(item => item.Referent)
+            .SingleOrDefaultAsync(item => item.Id == id, cancellationToken);
+
+        if (beneficiaire is null) return NotFound();
+
+        if (request.ReferentId.HasValue && !await IsActiveReferent(request.ReferentId.Value, cancellationToken))
+        {
+            return BadRequest(new { message = "Le référent indiqué est introuvable ou inactif." });
+        }
+
+        var previousReferentId = beneficiaire.ReferentId;
+        beneficiaire.ReferentId = request.ReferentId;
+        AddAudit(
+            "changement_referent_beneficiaire",
+            $"Beneficiaire:{beneficiaire.Id};De:{previousReferentId?.ToString() ?? "aucun"};Vers:{request.ReferentId?.ToString() ?? "aucun"}");
+        await db.SaveChangesAsync(cancellationToken);
+
+        beneficiaire.Referent = request.ReferentId.HasValue
+            ? await db.Utilisateurs.FindAsync([request.ReferentId.Value], cancellationToken)
+            : null;
+
+        return Ok(ToResponse(beneficiaire));
+    }
+
     [HttpPost("{id:guid}/archiver")]
     [Authorize(Roles = "Administrateur,Referent")]
     public async Task<IActionResult> Archive(Guid id, CancellationToken cancellationToken)
@@ -233,6 +266,11 @@ public sealed class CreateBeneficiaireRequest
 public sealed class ChangeBeneficiaireServiceRequest
 {
     public Guid? ServiceId { get; set; }
+}
+
+public sealed class ChangeBeneficiaireReferentRequest
+{
+    public Guid? ReferentId { get; set; }
 }
 
 public sealed record BeneficiaireResponse(

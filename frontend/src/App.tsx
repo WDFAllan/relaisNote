@@ -166,6 +166,21 @@ function App() {
     }
   }
 
+  const changeBeneficiaryReferent = async (beneficiary: Beneficiary, referentId: string | null) => {
+    setError('')
+    try {
+      const updated = await api<Beneficiary>(`/api/beneficiaires/${beneficiary.id}/referent`, {
+        method: 'PUT',
+        headers: authHeaders,
+        body: JSON.stringify({ referentId }),
+      })
+      setBeneficiaries((current) => current.map((item) => item.id === updated.id ? updated : item))
+    } catch (e) {
+      setError((e as Error).message)
+      throw e
+    }
+  }
+
   const archiveBeneficiary = (beneficiary: Beneficiary) => {
     const overlay = document.createElement('div')
     overlay.className = 'delete-modal-backdrop'
@@ -427,6 +442,7 @@ function App() {
         <BeneficiariesView
           beneficiaries={beneficiaries}
           services={services}
+          referents={team.filter((member) => (member.role === 1 || member.role === 2) && member.statut === 1)}
           selectedId={selectedId}
           setSelectedId={setSelectedId}
           selected={selected}
@@ -438,6 +454,7 @@ function App() {
           onArchiveBeneficiary={archiveBeneficiary}
           onCreateTransmission={createTransmission}
           onChangeService={changeBeneficiaryService}
+          onChangeReferent={changeBeneficiaryReferent}
         />
       )}
     </main>
